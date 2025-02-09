@@ -1,0 +1,150 @@
+# Guide de Déploiement sur une Instance AWS EC2
+
+## 1️⃣ Connexion à l'Instance EC2
+
+Avant de commencer, connecte-toi à ton instance EC2 en utilisant SSH :
+
+```bash
+ssh -i "chemin-vers-ta-cle.pem" ubuntu@ton-ip-ec2
+```
+
+📌 **Remplace** `chemin-vers-ta-cle.pem` par le chemin de ta clé privée et `ton-ip-ec2` par l'adresse IP publique de ton instance.
+
+---
+
+## 2️⃣ Installation des Dépendances sur l’Instance
+
+Avant d'exécuter le projet, installe les outils nécessaires :
+
+```bash
+# Mise à jour des paquets
+sudo apt update && sudo apt upgrade -y
+
+# Installation de Node.js et npm
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# Vérifier l'installation
+node -v
+npm -v
+
+# Installer Docker
+sudo apt install -y docker.io
+sudo systemctl start docker
+sudo systemctl enable docker
+```
+
+---
+
+## 3️⃣ Cloner le Projet depuis GitHub
+
+Télécharge le projet sur l’instance EC2 avec :
+
+```bash
+git clone https://github.com/SOG-collab/Mon_projet_aws.git
+cd Mon_projet_aws
+```
+
+---
+
+## 4️⃣ Installer les Dépendances du Projet
+
+Va dans chaque dossier (`backend` et `frontend`) et installe les dépendances :
+
+```bash
+# Installer les dépendances du backend
+cd backend
+npm install
+
+# Installer les dépendances du frontend
+cd ../frontend
+npm install
+```
+
+---
+
+## 5️⃣ Lancer le Projet avec Docker
+
+Puisque tout est conteneurisé, lance simplement Docker Compose :
+
+```bash
+cd ../
+docker compose up -d --build
+```
+
+✅ **Cela va :**
+
+- Construire les images Docker pour le frontend, le backend et la base de données
+- Lancer tous les services en arrière-plan
+
+---
+
+## 6️⃣ Vérifications Après le Lancement
+
+### ➡️ Vérifier les logs des services
+
+```bash
+docker compose logs backend
+docker compose logs frontend
+```
+
+### ➡️ Vérifier les conteneurs actifs
+
+```bash
+docker ps
+```
+
+### ➡️ Tester l’accès à l’application
+
+- **Backend :** `http://ton-ip-ec2:5000`
+- **Frontend :** `http://ton-ip-ec2:3000`
+
+⚠️ **Si l’accès ne fonctionne pas, vérifie que les ports sont ouverts dans le Security Group de ton instance EC2.** Ajoute une règle pour autoriser **les ports 3000 et 5000**.
+
+---
+
+## 7️⃣ Automatiser le Déploiement (Optionnel)
+
+Si tu veux automatiser l'installation et le lancement, crée un script `deploy.sh` :
+
+```bash
+#!/bin/bash
+
+# Mise à jour des paquets
+sudo apt update && sudo apt upgrade -y
+
+# Installation de Node.js et Docker
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt install -y nodejs docker.io
+sudo systemctl start docker
+sudo systemctl enable docker
+
+# Clonage du projet
+cd /home/ubuntu
+git clone https://github.com/SOG-collab/Mon_projet_aws.git
+cd Mon_projet_aws
+
+# Installation des dépendances
+cd backend && npm install
+cd ../frontend && npm install
+
+# Lancer le projet
+cd ../
+docker compose up -d --build
+```
+
+Puis exécute-le avec :
+
+```bash
+chmod +x deploy.sh
+./deploy.sh
+```
+
+---
+
+## 🎯 Conclusion
+
+✅ **Ton projet est maintenant déployé sur EC2 !** 💡 **Grâce à Docker, tout est automatisé et fonctionne de manière isolée.** 🚀
+
+Si besoin, on peut ajouter un CI/CD pour automatiser le déploiement après chaque commit ! 😃
+
