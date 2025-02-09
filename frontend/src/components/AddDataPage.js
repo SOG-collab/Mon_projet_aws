@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import "./AddDataPage.css";  // ✅ Ajout de l'import CSS
 
 const AddDataPage = () => {
   const [category, setCategory] = useState("jeux");
@@ -23,21 +24,21 @@ const AddDataPage = () => {
   };
 
   return (
-    <div>
-      <h2>Ajouter une donnée</h2>
-      <form onSubmit={handleSubmit}>
-        <select onChange={(e) => setCategory(e.target.value)}>
+    <div className="add-data-container">
+      <h2 className="add-data-title">Ajouter une donnée</h2>
+      <form onSubmit={handleSubmit} className="add-data-form">
+        <select onChange={(e) => setCategory(e.target.value)} className="add-data-select">
           <option value="jeux">Jeux</option>
           <option value="car">Voiture</option>
           <option value="technologie">Technologie</option>
           <option value="sante">Santé</option>
         </select>
-        <input type="text" name="name" placeholder="Nom" onChange={handleChange} />
-        <input type="text" name="description" placeholder="Description" onChange={handleChange} />
-        <input type="date" name="release_date" onChange={handleChange} />
-        <button type="submit">Ajouter</button>
+        <input type="text" name="name" placeholder="Nom" onChange={handleChange} className="add-data-input" />
+        <input type="text" name="description" placeholder="Description" onChange={handleChange} className="add-data-input" />
+        <input type="date" name="release_date" onChange={handleChange} className="add-data-input" />
+        <button type="submit" className="add-data-button">Ajouter</button>
       </form>
-      <p>{message}</p>
+      <p className="add-data-message">{message}</p>
     </div>
   );
 };

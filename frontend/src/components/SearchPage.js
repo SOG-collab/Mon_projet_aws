@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import "./SearchPage.css";  // ✅ Ajout de l'import CSS
 
 const SearchPage = () => {
   const [query, setQuery] = useState("");
@@ -19,7 +20,6 @@ const SearchPage = () => {
 
     try {
       const response = await axios.get(`http://localhost:5000/search?query=${query}`);
-      
       if (Object.keys(response.data).length === 0) {
         setResults(null);
         setError("Aucun résultat trouvé.");
@@ -35,31 +35,29 @@ const SearchPage = () => {
   };
 
   return (
-    <div style={{ padding: "20px", textAlign: "center" }}>
-      <h2>Recherche</h2>
+    <div className="search-container">
+      <h2 className="search-title">Recherche</h2>
       <input
         type="text"
         placeholder="Entrez un mot-clé..."
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        style={{ padding: "10px", width: "300px", marginRight: "10px" }}
+        className="search-input"
       />
-      <button onClick={handleSearch} style={{ padding: "10px 20px" }}>
-        Rechercher
-      </button>
+      <button onClick={handleSearch} className="search-button">Rechercher</button>
 
       {loading && <p>🔎 Recherche en cours...</p>}
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {error && <p className="search-error">{error}</p>}
 
       {results && (
-        <div style={{ marginTop: "20px", textAlign: "left" }}>
+        <div className="search-results">
           <h3>Résultats :</h3>
           {Object.entries(results).map(([category, items]) => (
-            <div key={category} style={{ marginBottom: "20px" }}>
-              <h4 style={{ textTransform: "capitalize" }}>{category} :</h4>
+            <div key={category}>
+              <h4 className="search-category">{category} :</h4>
               <ul>
                 {items.map((item) => (
-                  <li key={item.id}>
+                  <li key={item.id} className="search-item">
                     <strong>{item.name || item.title}</strong>
                     {item.description && <p>{item.description}</p>}
                   </li>
