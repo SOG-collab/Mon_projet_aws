@@ -1,0 +1,60 @@
+/* SearchPage.css */
+.search-container {
+    padding: 20px;
+    text-align: center;
+    background-color: #f5f5f5;
+    min-height: 100vh;
+  }
+  
+  .search-title {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+  }
+  
+  .search-input {
+    padding: 10px;
+    width: 300px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin-right: 10px;
+  }
+  
+  .search-button {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+  
+  .search-button:hover {
+    background-color: #0056b3;
+  }
+  
+  .search-error {
+    color: red;
+    margin-top: 10px;
+  }
+  
+  .search-results {
+    margin-top: 20px;
+    text-align: left;
+  }
+  
+  .search-category {
+    font-weight: bold;
+    font-size: 18px;
+    margin-top: 10px;
+  }
+  
+  .search-item {
+    background: white;
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 5px;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  
