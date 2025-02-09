@@ -7,12 +7,12 @@ dotenv.config();
 
 const app = express();
 app.use(express.json());
-app.use(cors());
+app.use(cors({ origin: "*" }));  // Autorise toutes les origines (à restreindre en prod)
 
-// Connexion à la base de données PostgreSQL
+// Connexion à la base de données PostgreSQL sur AWS EC2 ou AWS RDS
 const pool = new Pool({
   user: process.env.DB_USER,
-  host: process.env.DB_HOST,
+  host: process.env.DB_HOST,  // Utilise l'IP de l'instance EC2 ou l'endpoint AWS RDS
   database: process.env.DB_NAME,
   password: process.env.DB_PASSWORD,
   port: process.env.DB_PORT || 5432,
@@ -38,6 +38,11 @@ app.use((req, res, next) => {
   next();
 });
 
+// ✅ Vérification de l'état du serveur
+app.get("/health", (req, res) => {
+  res.json({ status: "running", timestamp: new Date().toISOString() });
+});
+
 // ✅ Route de recherche dans toutes les catégories
 app.get("/search", async (req, res) => {
   const { query } = req.query;
@@ -50,7 +55,7 @@ app.get("/search", async (req, res) => {
     let results = {};
 
     for (const [category, column] of Object.entries(categoryColumns)) {
-      console.log(`Recherche dans la table '${category}' avec la colonne '${column}'`);
+      console.log(`🔎 Recherche dans '${category}' avec '${column}'`);
 
       const queryResult = await pool.query(
         `SELECT '${category}' AS category, * FROM ${category} WHERE ${column} ILIKE $1`,
@@ -68,7 +73,7 @@ app.get("/search", async (req, res) => {
 
     res.json(results);
   } catch (err) {
-    console.error("Erreur lors de la recherche :", err);
+    console.error("❌ Erreur lors de la recherche :", err);
     res.status(500).json({ error: "Erreur serveur", details: err.message });
   }
 });
@@ -88,7 +93,7 @@ app.get("/search/:category", async (req, res) => {
 
   try {
     const column = categoryColumns[category];
-    console.log(`Recherche dans la table '${category}' avec la colonne '${column}'`);
+    console.log(`🔎 Recherche dans '${category}' avec '${column}'`);
 
     const result = await pool.query(
       `SELECT '${category}' AS category, * FROM ${category} WHERE ${column} ILIKE $1`,
@@ -101,7 +106,7 @@ app.get("/search/:category", async (req, res) => {
 
     res.json(result.rows);
   } catch (err) {
-    console.error("Erreur lors de la recherche :", err);
+    console.error("❌ Erreur lors de la recherche :", err);
     res.status(500).json({ error: "Erreur serveur", details: err.message });
   }
 });
@@ -137,14 +142,14 @@ app.post("/add/:category", async (req, res) => {
     }
 
     const result = await pool.query(query, values);
-    res.json({ message: "Donnée ajoutée avec succès", data: result.rows[0] });
+    res.json({ message: "✅ Donnée ajoutée avec succès", data: result.rows[0] });
 
   } catch (err) {
-    console.error("Erreur lors de l'insertion :", err);
+    console.error("❌ Erreur lors de l'insertion :", err);
     res.status(500).json({ error: "Erreur serveur", details: err.message });
   }
 });
 
-// Démarrer le serveur
+// ✅ Démarrer le serveur
 const port = process.env.PORT || 5000;
 app.listen(port, () => console.log(`🚀 Serveur lancé sur le port ${port}`));

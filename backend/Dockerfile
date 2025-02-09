@@ -5,13 +5,13 @@ FROM node:18
 WORKDIR /app
 
 # Installer PostgreSQL client (pour pg_isready)
-RUN apt-get update && apt-get install -y postgresql-client
+RUN apt-get update && apt-get install -y postgresql-client && rm -rf /var/lib/apt/lists/*
 
 # Copier les fichiers package.json et package-lock.json avant d'installer les dépendances
 COPY package*.json ./
 
-# Installer les dépendances
-RUN npm install
+# Installer uniquement les dépendances de production
+RUN npm install --omit=dev
 
 # Copier tout le code source
 COPY . .
@@ -19,5 +19,12 @@ COPY . .
 # Exposer le port utilisé par le backend
 EXPOSE 5000
 
-# Lancer le serveur après s'être assuré que la base de données est prête
-CMD ["sh", "-c", "until pg_isready -h db -p 5432; do echo waiting for db; sleep 2; done; node server.js"]
+# Définir les variables d'environnement pour la connexion à la DB
+ENV DB_HOST=${DB_HOST}
+ENV DB_USER=${DB_USER}
+ENV DB_PASSWORD=${DB_PASSWORD}
+ENV DB_NAME=${DB_NAME}
+ENV DB_PORT=${DB_PORT}
+
+# Attendre que la base de données soit prête avant de démarrer le serveur
+CMD ["sh", "-c", "until pg_isready -h $DB_HOST -p $DB_PORT; do echo waiting for db; sleep 2; done; node server.js"]
