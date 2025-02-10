@@ -9,16 +9,23 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Connexion à la base de données PostgreSQL
+// ✅ Connexion à PostgreSQL avec gestion des erreurs
 const pool = new Pool({
   user: process.env.DB_USER,
   host: process.env.DB_HOST,
   database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
+  password: process.env.DB_PASS,  // 🔹 Correction ici
   port: process.env.DB_PORT || 5432,
 });
 
-// Mapping des tables avec les bonnes colonnes
+pool.connect()
+  .then(() => console.log("✅ Connexion à PostgreSQL réussie"))
+  .catch(err => {
+    console.error("❌ Erreur de connexion à PostgreSQL :", err.message);
+    process.exit(1);
+  });
+
+// 🔹 Mapping des tables et colonnes
 const categoryColumns = {
   jeux: "name",
   car: "brand",
@@ -32,7 +39,7 @@ const categoryColumns = {
   art: "title",
 };
 
-// Middleware pour journaliser les requêtes
+// ✅ Middleware pour journaliser les requêtes
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
@@ -48,32 +55,25 @@ app.get("/search", async (req, res) => {
 
   try {
     let results = {};
-
     for (const [category, column] of Object.entries(categoryColumns)) {
-      console.log(`Recherche dans la table '${category}' avec la colonne '${column}'`);
-
-      const queryResult = await pool.query(
-        `SELECT '${category}' AS category, * FROM ${category} WHERE ${column} ILIKE $1`,
-        [`%${query}%`]
-      );
-
-      if (queryResult.rows.length > 0) {
-        results[category] = queryResult.rows;
+      try {
+        const queryResult = await pool.query(
+          `SELECT '${category}' AS category, * FROM ${category} WHERE ${column} ILIKE $1`,
+          [`%${query}%`]
+        );
+        if (queryResult.rows.length > 0) results[category] = queryResult.rows;
+      } catch (err) {
+        console.warn(`⚠️ La table '${category}' n'existe peut-être pas.`, err.message);
       }
     }
-
-    if (Object.keys(results).length === 0) {
-      return res.json({ message: "Aucun résultat trouvé." });
-    }
-
-    res.json(results);
+    res.json(Object.keys(results).length === 0 ? { message: "Aucun résultat trouvé." } : results);
   } catch (err) {
-    console.error("Erreur lors de la recherche :", err);
+    console.error("❌ Erreur serveur :", err);
     res.status(500).json({ error: "Erreur serveur", details: err.message });
   }
 });
 
-// ✅ Route de recherche dans une catégorie spécifique
+// ✅ Route de recherche dans une catégorie spécifique (sécurisée)
 app.get("/search/:category", async (req, res) => {
   const { category } = req.params;
   const { query } = req.query;
@@ -88,25 +88,21 @@ app.get("/search/:category", async (req, res) => {
 
   try {
     const column = categoryColumns[category];
-    console.log(`Recherche dans la table '${category}' avec la colonne '${column}'`);
 
+    // 🔹 Protection contre les injections SQL
     const result = await pool.query(
       `SELECT '${category}' AS category, * FROM ${category} WHERE ${column} ILIKE $1`,
       [`%${query}%`]
     );
 
-    if (result.rows.length === 0) {
-      return res.json({ message: "Aucun résultat trouvé." });
-    }
-
-    res.json(result.rows);
+    res.json(result.rows.length === 0 ? { message: "Aucun résultat trouvé." } : result.rows);
   } catch (err) {
-    console.error("Erreur lors de la recherche :", err);
+    console.error("❌ Erreur lors de la recherche :", err);
     res.status(500).json({ error: "Erreur serveur", details: err.message });
   }
 });
 
-// ✅ Route d'ajout de données
+// ✅ Route pour ajouter des données
 app.post("/add/:category", async (req, res) => {
   const { category } = req.params;
   const data = req.body;
@@ -140,11 +136,11 @@ app.post("/add/:category", async (req, res) => {
     res.json({ message: "Donnée ajoutée avec succès", data: result.rows[0] });
 
   } catch (err) {
-    console.error("Erreur lors de l'insertion :", err);
+    console.error("❌ Erreur lors de l'insertion :", err);
     res.status(500).json({ error: "Erreur serveur", details: err.message });
   }
 });
 
-// Démarrer le serveur
+// ✅ Démarrer le serveur
 const port = process.env.PORT || 5000;
 app.listen(port, () => console.log(`🚀 Serveur lancé sur le port ${port}`));

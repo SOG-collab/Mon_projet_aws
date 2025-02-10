@@ -19,5 +19,5 @@ COPY . .
 # Exposer le port utilisé par le backend
 EXPOSE 5000
 
-# Lancer le serveur après s'être assuré que la base de données est prête
-CMD ["sh", "-c", "until pg_isready -h db -p 5432; do echo waiting for db; sleep 2; done; node server.js"]
+# Assurer que la base de données est prête avant de démarrer l'API
+CMD ["sh", "-c", "until pg_isready -h $DB_HOST -p $DB_PORT; do echo waiting for db; sleep 2; done; node server.js"]
