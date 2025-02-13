@@ -1,0 +1,34 @@
+- name: Déploiement de l'application sur EC2
+  hosts: webserver
+  become: yes
+  tasks:
+  
+    - name: Mettre à jour les paquets
+      apt:
+        update_cache: yes
+        upgrade: yes
+
+    - name: Installer Docker
+      apt:
+        name: docker.io
+        state: present
+
+    - name: Démarrer le service Docker
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Copier le backend sur l’instance EC2
+      copy:
+        src: ../backend/
+        dest: /home/ubuntu/backend/
+
+    - name: Construire l’image Docker du backend
+      shell: |
+        cd /home/ubuntu/backend
+        docker build -t mon-backend .
+
+    - name: Lancer le backend avec Docker
+      shell: |
+        docker run -d -p 3000:3000 --name backend --env-file .env mon-backend
