@@ -7,19 +7,25 @@ dotenv.config();
 
 const app = express();
 app.use(express.json());
-app.use(cors());
+
+// ✅ CORS : Autorise toutes les origines (à sécuriser en production)
+app.use(cors({ origin: "*" }));
 
 // ✅ Connexion à PostgreSQL avec gestion des erreurs
 const pool = new Pool({
   user: process.env.DB_USER,
   host: process.env.DB_HOST,
   database: process.env.DB_NAME,
-  password: process.env.DB_PASS,  // 🔹 Correction ici
+  password: process.env.DB_PASS,
   port: process.env.DB_PORT || 5432,
 });
 
 pool.connect()
-  .then(() => console.log("✅ Connexion à PostgreSQL réussie"))
+  .then(() => {
+    console.log("✅ Connexion à PostgreSQL réussie !");
+    console.log(`🗄️  Base de données : ${process.env.DB_NAME}`);
+    console.log(`📡 Hôte : ${process.env.DB_HOST}`);
+  })
   .catch(err => {
     console.error("❌ Erreur de connexion à PostgreSQL :", err.message);
     process.exit(1);
@@ -39,13 +45,29 @@ const categoryColumns = {
   art: "title",
 };
 
-// ✅ Middleware pour journaliser les requêtes
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-  next();
+// ✅ Route pour vérifier si l'API fonctionne
+app.get("/", (req, res) => {
+  res.send("🚀 API en ligne et fonctionnelle !");
 });
 
-// ✅ Route de recherche dans toutes les catégories
+// ✅ Route pour voir toutes les données d'une catégorie
+app.get("/debug/:category", async (req, res) => {
+  const { category } = req.params;
+  if (!categoryColumns[category]) {
+    return res.status(400).json({ error: "Catégorie invalide" });
+  }
+
+  try {
+    console.log(`🔍 Requête: SELECT * FROM ${category}`);
+    const result = await pool.query(`SELECT * FROM ${category}`);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Erreur :", err);
+    res.status(500).json({ error: "Erreur serveur", details: err.message });
+  }
+});
+
+// ✅ Route de recherche globale
 app.get("/search", async (req, res) => {
   const { query } = req.query;
 
@@ -56,48 +78,15 @@ app.get("/search", async (req, res) => {
   try {
     let results = {};
     for (const [category, column] of Object.entries(categoryColumns)) {
-      try {
-        const queryResult = await pool.query(
-          `SELECT '${category}' AS category, * FROM ${category} WHERE ${column} ILIKE $1`,
-          [`%${query}%`]
-        );
-        if (queryResult.rows.length > 0) results[category] = queryResult.rows;
-      } catch (err) {
-        console.warn(`⚠️ La table '${category}' n'existe peut-être pas.`, err.message);
-      }
+      const queryResult = await pool.query(
+        `SELECT '${category}' AS category, * FROM ${category} WHERE ${column} ILIKE $1`,
+        [`%${query}%`]
+      );
+      if (queryResult.rows.length > 0) results[category] = queryResult.rows;
     }
     res.json(Object.keys(results).length === 0 ? { message: "Aucun résultat trouvé." } : results);
   } catch (err) {
-    console.error("❌ Erreur serveur :", err);
-    res.status(500).json({ error: "Erreur serveur", details: err.message });
-  }
-});
-
-// ✅ Route de recherche dans une catégorie spécifique (sécurisée)
-app.get("/search/:category", async (req, res) => {
-  const { category } = req.params;
-  const { query } = req.query;
-
-  if (!categoryColumns[category]) {
-    return res.status(400).json({ error: "Catégorie invalide" });
-  }
-
-  if (!query || query.trim() === "") {
-    return res.status(400).json({ error: "Le champ 'query' est requis" });
-  }
-
-  try {
-    const column = categoryColumns[category];
-
-    // 🔹 Protection contre les injections SQL
-    const result = await pool.query(
-      `SELECT '${category}' AS category, * FROM ${category} WHERE ${column} ILIKE $1`,
-      [`%${query}%`]
-    );
-
-    res.json(result.rows.length === 0 ? { message: "Aucun résultat trouvé." } : result.rows);
-  } catch (err) {
-    console.error("❌ Erreur lors de la recherche :", err);
+    console.error("❌ Erreur :", err);
     res.status(500).json({ error: "Erreur serveur", details: err.message });
   }
 });
@@ -112,6 +101,8 @@ app.post("/add/:category", async (req, res) => {
   }
 
   try {
+    console.log(`🔄 Requête POST reçue pour ajouter dans '${category}' :`, data);
+
     const queryMap = {
       jeux: ["INSERT INTO jeux (name, description, release_date) VALUES ($1, $2, $3) RETURNING *", ["name", "description", "release_date"]],
       car: ["INSERT INTO car (brand, model, year) VALUES ($1, $2, $3) RETURNING *", ["brand", "model", "year"]],
@@ -133,8 +124,7 @@ app.post("/add/:category", async (req, res) => {
     }
 
     const result = await pool.query(query, values);
-    res.json({ message: "Donnée ajoutée avec succès", data: result.rows[0] });
-
+    res.json({ message: "✅ Donnée ajoutée avec succès", data: result.rows[0] });
   } catch (err) {
     console.error("❌ Erreur lors de l'insertion :", err);
     res.status(500).json({ error: "Erreur serveur", details: err.message });
@@ -143,4 +133,6 @@ app.post("/add/:category", async (req, res) => {
 
 // ✅ Démarrer le serveur
 const port = process.env.PORT || 5000;
-app.listen(port, () => console.log(`🚀 Serveur lancé sur le port ${port}`));
+app.listen(port, "0.0.0.0", () => {
+  console.log(`🚀 Serveur lancé sur http://0.0.0.0:${port}`);
+});
