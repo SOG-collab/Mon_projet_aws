@@ -4,11 +4,13 @@ FROM node:18-alpine AS build
 # Définir le répertoire de travail
 WORKDIR /app
 
-# Copier package.json et installer les dépendances
+# Copier uniquement les fichiers essentiels
 COPY package*.json ./
-RUN npm install
 
-# Copier le code source
+# Installer uniquement les dépendances de production
+RUN npm install --only=production
+
+# Copier tout le code source
 COPY . .
 
 # Construire l'application React
@@ -17,7 +19,7 @@ RUN npm run build
 # Étape 2 : Exécution avec Nginx
 FROM nginx:alpine
 
-# Copier la configuration Nginx
+# Copier la configuration Nginx optimisée
 COPY nginx.conf /etc/nginx/nginx.conf
 
 # Copier l'application React buildée
